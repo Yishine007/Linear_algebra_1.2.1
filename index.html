@@ -414,13 +414,13 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script>
         // 初始化Three.js场景
-        let scene, camera, renderer;
+        let scene, camera, renderer, sceneGroup;
         let plane1, plane2, plane3, point;
         let currentStep = 0;
         let isDragging = false;
         let previousMousePosition = { x: 0, y: 0 };
         let targetRotation = { x: 0.5, y: 0.5 };
-        let targetZoom = 8; // 调整初始缩放
+        let targetZoom = 8;
         let currentZoom = 8;
         let axisObjects = { x: null, y: null, z: null };
         
@@ -470,10 +470,9 @@
             ]
         ];
         
-        // 创建平面函数（优化边界显示）
+        // 创建平面函数
         function createPlane(a, b, c, d, color) {
-            // 动态计算平面尺寸，确保在-5到5范围内显示
-            const size = 8; // 固定尺寸
+            const size = 8;
             const geometry = new THREE.PlaneGeometry(size, size);
             const material = new THREE.MeshBasicMaterial({
                 color: color,
@@ -579,7 +578,7 @@
             
             // 创建相机
             camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-            camera.position.set(5, 5, 5);
+            camera.position.set(4, 4, 7); // 调整相机初始位置
             camera.lookAt(0, 0, 0);
             
             // 创建渲染器
@@ -599,6 +598,12 @@
             const directionalLight2 = new THREE.DirectionalLight(0xffffff, 0.5);
             directionalLight2.position.set(-1, -1, -1);
             scene.add(directionalLight2);
+            
+            // 创建场景组，用于整体移动场景
+            sceneGroup = new THREE.Group();
+            // 整体向左移动1单位（x轴负方向）
+            sceneGroup.position.set(-1, -1, 0);
+            scene.add(sceneGroup);
             
             // 增强坐标轴 - 全部使用黑色
             const axesGroup = new THREE.Group();
@@ -624,7 +629,7 @@
             axesGroup.add(createAxisArrow(new THREE.Vector3(0, 1, 0), new THREE.Vector3(0, axisLength, 0), axisColor));
             axesGroup.add(createAxisArrow(new THREE.Vector3(0, 0, 1), new THREE.Vector3(0, 0, axisLength), axisColor));
             
-            scene.add(axesGroup);
+            sceneGroup.add(axesGroup);
             
             // 添加网格辅助平面（限制在-5到5之间）
             const gridHelper = new THREE.GridHelper(10, 10, 0x000000, 0xcccccc);
@@ -632,18 +637,18 @@
             gridHelper.material.linewidth = 1;
             gridHelper.material.opacity = 0.5;
             gridHelper.material.transparent = true;
-            scene.add(gridHelper);
+            sceneGroup.add(gridHelper);
             
             // 创建坐标轴标签
-            const axisLengthLabel = 6;
+            const axisLengthLabel = 5.5;
             
             axisObjects.x = create3DAxisLabel('X', new THREE.Vector3(axisLengthLabel, 0, 0), '#000000');
             axisObjects.y = create3DAxisLabel('Y', new THREE.Vector3(0, axisLengthLabel, 0), '#000000');
             axisObjects.z = create3DAxisLabel('Z', new THREE.Vector3(0, 0, axisLengthLabel), '#000000');
             
-            scene.add(axisObjects.x);
-            scene.add(axisObjects.y);
-            scene.add(axisObjects.z);
+            sceneGroup.add(axisObjects.x);
+            sceneGroup.add(axisObjects.y);
+            sceneGroup.add(axisObjects.z);
             
             // 初始平面
             updatePlanes(currentStep);
@@ -658,10 +663,10 @@
         // 更新平面
         function updatePlanes(step) {
             // 移除旧平面
-            if (plane1) scene.remove(plane1);
-            if (plane2) scene.remove(plane2);
-            if (plane3) scene.remove(plane3);
-            if (point) scene.remove(point);
+            if (plane1) sceneGroup.remove(plane1);
+            if (plane2) sceneGroup.remove(plane2);
+            if (plane3) sceneGroup.remove(plane3);
+            if (point) sceneGroup.remove(point);
             
             const planes = planeEquations[step];
             
@@ -671,10 +676,10 @@
             plane3 = createPlane(planes[2].a, planes[2].b, planes[2].c, planes[2].d, plane3Color);
             point = createPoint(1, 1, 1, pointColor);
             
-            scene.add(plane1);
-            scene.add(plane2);
-            scene.add(plane3);
-            scene.add(point);
+            sceneGroup.add(plane1);
+            sceneGroup.add(plane2);
+            sceneGroup.add(plane3);
+            sceneGroup.add(point);
             
             // 更新平面方程显示
             document.getElementById('plane1-eq').textContent = `平面1: ${formatEquation(planes[0])}`;
