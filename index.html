@@ -1,0 +1,919 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>线性方程组初等变换3D可视化</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🧮</text></svg>">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        body {
+            background: linear-gradient(135deg, #1a2a6c, #0dc7f0);
+            color: #333;
+            min-height: 100vh;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .header {
+            text-align: center;
+            padding: 20px;
+            background: rgba(255, 255, 255, 0.2);
+            border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+        }
+        
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            background: linear-gradient(45deg, #ededef, #cfd0d1, #faf7f7);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        
+        .container {
+            display: flex;
+            flex: 1;
+            padding: 20px;
+            gap: 20px;
+            height: calc(100vh - 150px);
+        }
+        
+        .visualization {
+            flex: 1;
+            position: relative;
+            background: white;
+            border-radius: 15px;
+            overflow: hidden;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            border: 1px solid rgba(0, 0, 0, 0.1);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        #canvas-container {
+            width: 100%;
+            height: 100%;
+            position: relative;
+        }
+        
+        .controls {
+            width: 350px;
+            background: rgba(255, 255, 255, 0.9);
+            border-radius: 15px;
+            padding: 25px;
+            display: flex;
+            flex-direction: column;
+            gap: 25px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            border: 1px solid rgba(0, 0, 0, 0.1);
+            overflow-y: auto;
+            color: #333;
+        }
+        
+        .control-section {
+            background: rgba(240, 240, 245, 0.9);
+            padding: 20px;
+            border-radius: 12px;
+            border-left: 4px solid #1a2a6c;
+        }
+        
+        .control-section h2 {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 15px;
+            font-size: 1.4rem;
+            color: #1a2a6c;
+        }
+        
+        .slider-container {
+            margin: 15px 0;
+        }
+        
+        .slider-container label {
+            display: block;
+            margin-bottom: 8px;
+            font-size: 1.1rem;
+            color: #2c3e50;
+        }
+        
+        .slider {
+            width: 100%;
+            height: 8px;
+            -webkit-appearance: none;
+            background: rgba(200, 200, 220, 0.8);
+            border-radius: 4px;
+            outline: none;
+        }
+        
+        .slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 22px;
+            height: 22px;
+            border-radius: 50%;
+            background: #1a2a6c;
+            cursor: pointer;
+            box-shadow: 0 0 10px rgba(26, 42, 108, 0.5);
+        }
+        
+        .step-info {
+            margin-top: 15px;
+            padding: 15px;
+            background: rgba(230, 230, 240, 0.8);
+            border-radius: 8px;
+            font-size: 1.1rem;
+            line-height: 1.6;
+            color: #333;
+        }
+        
+        .step-info strong {
+            color: #1a2a6c;
+        }
+        
+        .matrix-display {
+            width: 350px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            background: rgba(255, 255, 255, 0.9);
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            border: 1px solid rgba(0, 0, 0, 0.1);
+            color: #333;
+        }
+        
+        .matrix-description {
+            background: rgba(240, 240, 245, 0.9);
+            padding: 20px;
+            border-radius: 12px;
+            font-size: 1.1rem;
+            line-height: 1.6;
+        }
+        
+        .matrix-container {
+            background: rgba(240, 240, 245, 0.9);
+            padding: 30px;
+            border-radius: 12px;
+            width: 100%;
+            text-align: center;
+        }
+        
+        .matrix {
+            margin: 0 auto;
+            border-collapse: collapse;
+            font-size: 1.5rem;
+            font-family: monospace;
+            color: #1a2a6c;
+        }
+        
+        .matrix td {
+            padding: 8px 12px;
+            text-align: center;
+            border: none;
+        }
+        
+        .matrix tr td:nth-child(4) {
+            border-left: 2px solid rgba(0, 0, 0, 0.3);
+            padding-left: 20px;
+        }
+        
+        .footer {
+            text-align: center;
+            padding: 20px;
+            font-size: 1rem;
+            color: rgba(255, 255, 255, 0.8);
+            background: rgba(0, 0, 0, 0.4);
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .step-buttons {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+        }
+        
+        .step-btn {
+            flex: 1;
+            padding: 12px;
+            border: none;
+            border-radius: 8px;
+            background: linear-gradient(45deg, #1a2a6c, #4ecdc4);
+            color: white;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .step-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+        }
+        
+        .step-btn:active {
+            transform: translateY(0);
+        }
+        
+        .step-btn:disabled {
+            background: #aaa;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+        
+        .plane-info {
+            display: flex;
+            gap: 15px;
+            margin-top: 15px;
+            align-items: center;
+        }
+        
+        .plane-color {
+            width: 25px;
+            height: 25px;
+            border-radius: 4px;
+        }
+        
+        .plane1-color { background: #ff6b6b; }
+        .plane2-color { background: #4ecdc4; }
+        .plane3-color { background: #ffd166; }
+        
+        .equation {
+            font-family: monospace;
+            font-size: 1.1rem;
+            color: #333;
+        }
+        
+        .info-text {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            background: rgba(255, 255, 255, 0.8);
+            padding: 10px 15px;
+            border-radius: 8px;
+            font-size: 14px;
+            z-index: 10;
+            color: #333;
+            border: 1px solid rgba(0, 0, 0, 0.1);
+        }
+        
+        /* 坐标轴标签 */
+        .axis-label {
+            position: absolute;
+            font-size: 16px;
+            font-weight: bold;
+            pointer-events: none;
+            z-index: 10;
+            color: #000;
+            text-shadow: 0 0 2px rgba(255, 255, 255, 0.8);
+        }
+        
+        /* 响应式设计 */
+        @media (max-width: 1200px) {
+            .container {
+                flex-wrap: wrap;
+            }
+            
+            .visualization {
+                width: 100%;
+                order: 1;
+            }
+            
+            .controls {
+                width: 45%;
+                order: 2;
+            }
+            
+            .matrix-display {
+                width: 45%;
+                order: 3;
+            }
+        }
+        
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 2rem;
+            }
+            
+            .container {
+                flex-direction: column;
+            }
+            
+            .visualization,
+            .controls,
+            .matrix-display {
+                width: 100%;
+            }
+            
+            .controls {
+                order: 2;
+            }
+            
+            .matrix-display {
+                order: 3;
+            }
+            
+            .matrix {
+                font-size: 1.2rem;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            .header h1 {
+                font-size: 1.8rem;
+            }
+            
+            .matrix {
+                font-size: 1rem;
+            }
+            
+            .equation {
+                font-size: 1.0rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>线性方程组初等变换3D可视化</h1>
+    </div>
+    
+    <div class="container">
+        <div class="controls">
+            <div class="control-section">
+                <h2>变换控制</h2>
+                <div class="slider-container">
+                    <label>变换步骤: <span id="step-value">0</span>/5</label>
+                    <input type="range" min="0" max="5" value="0" class="slider" id="step-slider">
+                </div>
+                
+                <div class="step-buttons">
+                    <button class="step-btn" id="prev-btn">上一步</button>
+                    <button class="step-btn" id="next-btn">下一步</button>
+                </div>
+                
+                <div class="step-info">
+                    <strong>当前步骤:</strong> <span id="step-description">初始方程组</span>
+                </div>
+            </div>
+            
+            <div class="control-section">
+                <h2>平面信息</h2>
+                <div class="plane-info">
+                    <div class="plane-color plane1-color"></div>
+                    <div class="equation" id="plane1-eq">平面1: x + y + z = 3</div>
+                </div>
+                <div class="plane-info">
+                    <div class="plane-color plane2-color"></div>
+                    <div class="equation" id="plane2-eq">平面2: 2x + y - z = 2</div>
+                </div>
+                <div class="plane-info">
+                    <div class="plane-color plane3-color"></div>
+                    <div class="equation" id="plane3-eq">平面3: x - 3y + z = -1</div>
+                </div>
+                
+                <div class="step-info">
+                    <strong>交点:</strong> <span id="intersection">(1, 1, 1)</span>
+                </div>
+            </div>
+        </div>
+        
+        <div class="visualization">
+            <div id="canvas-container">
+                <!-- 坐标轴标签将在这里动态添加 -->
+            </div>
+            <div class="info-text">提示: 用鼠标拖动旋转场景 | 滚轮缩放 | 双击重置视图</div>
+        </div>
+        
+        <div class="matrix-display">
+            <div class="matrix-description">
+                本演示展示了线性方程组的初等变换过程，包括三个平面的变化和对应的矩阵变换。使用滑块或按钮控制变换步骤，观察方程组的求解过程。
+            </div>
+            
+            <div class="matrix-container">
+                <div id="matrix"></div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="footer">
+        <p>线性代数与解析几何动态演示 | © 2025 数学可视化项目</p>
+    </div>
+
+    <!-- 使用CDN加载Three.js库 -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script>
+        // 初始化Three.js场景
+        let scene, camera, renderer;
+        let plane1, plane2, plane3, point;
+        let currentStep = 0;
+        let isDragging = false;
+        let previousMousePosition = { x: 0, y: 0 };
+        let targetRotation = { x: 0.5, y: 0.5 };
+        let targetZoom = 8; // 调整初始缩放
+        let currentZoom = 8;
+        let axisObjects = { x: null, y: null, z: null };
+        
+        // 平面颜色定义
+        const plane1Color = 0xff6b6b;
+        const plane2Color = 0x4ecdc4;
+        const plane3Color = 0xffd166; 
+        const pointColor = 0x000000;
+        
+        // 各步骤的平面方程参数
+        const planeEquations = [
+            // 步骤0: 初始状态
+            [
+                { a: 1, b: 1, c: 1, d: 3 }, // 平面1
+                { a: 2, b: 1, c: -1, d: 2 }, // 平面2
+                { a: 1, b: -3, c: 1, d: -1 }  // 平面3
+            ],
+            // 步骤1: 第一步变换后
+            [
+                { a: 1, b: 1, c: 1, d: 3 },
+                { a: 0, b: -1, c: -3, d: -4 },
+                { a: 0, b: -4, c: 0, d: -4 }
+            ],
+            // 步骤2: 第二步变换后
+            [
+                { a: 1, b: 1, c: 1, d: 3 },
+                { a: 0, b: 1, c: 3, d: 4 },
+                { a: 0, b: 1, c: 0, d: 1 }
+            ],
+            // 步骤3: 第三步变换后
+            [
+                { a: 1, b: 1, c: 1, d: 3 },
+                { a: 0, b: 1, c: 0, d: 1 },
+                { a: 0, b: 0, c: 3, d: 3 }
+            ],
+            // 步骤4: 第四步变换后
+            [
+                { a: 1, b: 0, c: 1, d: 2 },
+                { a: 0, b: 1, c: 0, d: 1 },
+                { a: 0, b: 0, c: 3, d: 3 }
+            ],
+            // 步骤5: 第五步变换后
+            [
+                { a: 1, b: 0, c: 0, d: 1 },
+                { a: 0, b: 1, c: 0, d: 1 },
+                { a: 0, b: 0, c: 1, d: 1 }
+            ]
+        ];
+        
+        // 创建平面函数（优化边界显示）
+        function createPlane(a, b, c, d, color) {
+            // 动态计算平面尺寸，确保在-5到5范围内显示
+            const size = 8; // 固定尺寸
+            const geometry = new THREE.PlaneGeometry(size, size);
+            const material = new THREE.MeshBasicMaterial({
+                color: color,
+                side: THREE.DoubleSide,
+                transparent: true,
+                opacity: 0.7,
+                wireframe: false
+            });
+            
+            const plane = new THREE.Mesh(geometry, material);
+            
+            // 计算平面法向量
+            const normal = new THREE.Vector3(a, b, c).normalize();
+            
+            // 使用固定交点作为平面中心点
+            const pointOnPlane = new THREE.Vector3(1, 1, 1);
+            
+            // 设置平面位置和朝向
+            plane.position.copy(pointOnPlane);
+            
+            // 计算旋转
+            const quaternion = new THREE.Quaternion();
+            quaternion.setFromUnitVectors(new THREE.Vector3(0, 0, 1), normal);
+            plane.setRotationFromQuaternion(quaternion);
+            
+            return plane;
+        }
+        
+        // 创建交点
+        function createPoint(x, y, z, color) {
+            const geometry = new THREE.SphereGeometry(0.15, 32, 32);
+            const material = new THREE.MeshPhongMaterial({ 
+                color: color,
+                emissive: color,
+                emissiveIntensity: 0.5
+            });
+            const point = new THREE.Mesh(geometry, material);
+            point.position.set(x, y, z);
+            return point;
+        }
+        
+        // 创建坐标轴箭头
+        function createAxisArrow(direction, position, color) {
+            const arrowLength = 0.5;
+            const arrowHeadLength = 0.2;
+            const arrowHeadWidth = 0.05;
+            
+            const arrow = new THREE.Group();
+            
+            // 箭头杆
+            const shaftGeometry = new THREE.CylinderGeometry(0.01, 0.01, arrowLength, 8);
+            const shaftMaterial = new THREE.MeshBasicMaterial({ color: color });
+            const shaft = new THREE.Mesh(shaftGeometry, shaftMaterial);
+            shaft.position.y = arrowLength / 2;
+            arrow.add(shaft);
+            
+            // 箭头头
+            const headGeometry = new THREE.ConeGeometry(arrowHeadWidth, arrowHeadLength, 16);
+            const headMaterial = new THREE.MeshBasicMaterial({ color: color });
+            const head = new THREE.Mesh(headGeometry, headMaterial);
+            head.position.y = arrowLength;
+            arrow.add(head);
+            
+            // 根据方向旋转箭头
+            arrow.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), direction.clone().normalize());
+            
+            // 设置箭头位置到端点
+            arrow.position.copy(position);
+            
+            return arrow;
+        }
+        
+        // 创建坐标轴标签
+        function create3DAxisLabel(text, position, color) {
+            const canvas = document.createElement('canvas');
+            canvas.width = 64;
+            canvas.height = 64;
+            const context = canvas.getContext('2d');
+            context.fillStyle = 'rgba(0, 0, 0, 0)';
+            context.fillRect(0, 0, 64, 64);
+            context.font = 'Bold 24px Arial';
+            context.textAlign = 'center';
+            context.textBaseline = 'middle';
+            context.fillStyle = color;
+            context.fillText(text, 32, 32);
+            
+            const texture = new THREE.CanvasTexture(canvas);
+            const material = new THREE.SpriteMaterial({ 
+                map: texture,
+                transparent: true
+            });
+            const sprite = new THREE.Sprite(material);
+            sprite.scale.set(0.5, 0.5, 0.5);
+            sprite.position.copy(position);
+            return sprite;
+        }
+        
+        // 初始化场景
+        function init() {
+            // 创建场景
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0xf0f8ff);
+            
+            // 创建相机
+            camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+            camera.position.set(5, 5, 5);
+            camera.lookAt(0, 0, 0);
+            
+            // 创建渲染器
+            renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+            renderer.setSize(document.querySelector('.visualization').clientWidth, 
+                            document.querySelector('.visualization').clientHeight);
+            document.getElementById('canvas-container').appendChild(renderer.domElement);
+            
+            // 添加光源
+            const ambientLight = new THREE.AmbientLight(0x404040);
+            scene.add(ambientLight);
+            
+            const directionalLight1 = new THREE.DirectionalLight(0xffffff, 0.8);
+            directionalLight1.position.set(1, 1, 1);
+            scene.add(directionalLight1);
+            
+            const directionalLight2 = new THREE.DirectionalLight(0xffffff, 0.5);
+            directionalLight2.position.set(-1, -1, -1);
+            scene.add(directionalLight2);
+            
+            // 增强坐标轴 - 全部使用黑色
+            const axesGroup = new THREE.Group();
+            const axisColor = 0x000000;
+            const axisLength = 5;
+            
+            // 创建坐标轴（限制在-5到5之间）
+            const createAxis = (start, end, color) => {
+                const geometry = new THREE.BufferGeometry().setFromPoints([start, end]);
+                const material = new THREE.LineBasicMaterial({ color, linewidth: 2 });
+                return new THREE.Line(geometry, material);
+            };
+            
+            // X轴（从-5到5）
+            axesGroup.add(createAxis(new THREE.Vector3(-axisLength, 0, 0), new THREE.Vector3(axisLength, 0, 0), axisColor));
+            // Y轴（从-5到5）
+            axesGroup.add(createAxis(new THREE.Vector3(0, -axisLength, 0), new THREE.Vector3(0, axisLength, 0), axisColor));
+            // Z轴（从-5到5）
+            axesGroup.add(createAxis(new THREE.Vector3(0, 0, -axisLength), new THREE.Vector3(0, 0, axisLength), axisColor));
+            
+            // 在坐标轴端点处添加箭头
+            axesGroup.add(createAxisArrow(new THREE.Vector3(1, 0, 0), new THREE.Vector3(axisLength, 0, 0), axisColor));
+            axesGroup.add(createAxisArrow(new THREE.Vector3(0, 1, 0), new THREE.Vector3(0, axisLength, 0), axisColor));
+            axesGroup.add(createAxisArrow(new THREE.Vector3(0, 0, 1), new THREE.Vector3(0, 0, axisLength), axisColor));
+            
+            scene.add(axesGroup);
+            
+            // 添加网格辅助平面（限制在-5到5之间）
+            const gridHelper = new THREE.GridHelper(10, 10, 0x000000, 0xcccccc);
+            gridHelper.position.y = -0.01;
+            gridHelper.material.linewidth = 1;
+            gridHelper.material.opacity = 0.5;
+            gridHelper.material.transparent = true;
+            scene.add(gridHelper);
+            
+            // 创建坐标轴标签
+            const axisLengthLabel = 5.5;
+            
+            axisObjects.x = create3DAxisLabel('X', new THREE.Vector3(axisLengthLabel, 0, 0), '#000000');
+            axisObjects.y = create3DAxisLabel('Y', new THREE.Vector3(0, axisLengthLabel, 0), '#000000');
+            axisObjects.z = create3DAxisLabel('Z', new THREE.Vector3(0, 0, axisLengthLabel), '#000000');
+            
+            scene.add(axisObjects.x);
+            scene.add(axisObjects.y);
+            scene.add(axisObjects.z);
+            
+            // 初始平面
+            updatePlanes(currentStep);
+            
+            // 添加事件监听器
+            setupEventListeners();
+            
+            // 开始动画循环
+            animate();
+        }
+        
+        // 更新平面
+        function updatePlanes(step) {
+            // 移除旧平面
+            if (plane1) scene.remove(plane1);
+            if (plane2) scene.remove(plane2);
+            if (plane3) scene.remove(plane3);
+            if (point) scene.remove(point);
+            
+            const planes = planeEquations[step];
+            
+            // 创建新平面
+            plane1 = createPlane(planes[0].a, planes[0].b, planes[0].c, planes[0].d, plane1Color);
+            plane2 = createPlane(planes[1].a, planes[1].b, planes[1].c, planes[1].d, plane2Color);
+            plane3 = createPlane(planes[2].a, planes[2].b, planes[2].c, planes[2].d, plane3Color);
+            point = createPoint(1, 1, 1, pointColor);
+            
+            scene.add(plane1);
+            scene.add(plane2);
+            scene.add(plane3);
+            scene.add(point);
+            
+            // 更新平面方程显示
+            document.getElementById('plane1-eq').textContent = `平面1: ${formatEquation(planes[0])}`;
+            document.getElementById('plane2-eq').textContent = `平面2: ${formatEquation(planes[1])}`;
+            document.getElementById('plane3-eq').textContent = `平面3: ${formatEquation(planes[2])}`;
+            
+            // 更新交点显示
+            document.getElementById('intersection').textContent = step === 5 ? "(1, 1, 1)" : "(1, 1, 1)";
+        }
+        
+        // 格式化平面方程为字符串
+        function formatEquation(plane) {
+            const terms = [];
+            
+            if (plane.a !== 0) {
+                terms.push(`${plane.a === 1 ? '' : plane.a === -1 ? '-' : plane.a}x`);
+            }
+            if (plane.b !== 0) {
+                terms.push(`${plane.b > 0 ? '+' : ''}${plane.b === 1 ? '' : plane.b === -1 ? '-' : plane.b}y`);
+            }
+            if (plane.c !== 0) {
+                terms.push(`${plane.c > 0 ? '+' : ''}${plane.c === 1 ? '' : plane.c === -1 ? '-' : plane.c}z`);
+            }
+            
+            let equation = terms.join('');
+            if (equation[0] === '+') equation = equation.substring(1);
+            
+            return `${equation} = ${plane.d}`;
+        }
+        
+        // 更新矩阵显示
+        function updateMatrix(step) {
+            let matrixHTML = "";
+            
+            switch(step) {
+                case 0:
+                    matrixHTML = `
+                        <table class="matrix">
+                            <tr><td>1</td><td>1</td><td>1</td><td>3</td></tr>
+                            <tr><td>2</td><td>1</td><td>-1</td><td>2</td></tr>
+                            <tr><td>1</td><td>-3</td><td>1</td><td>-1</td></tr>
+                        </table>
+                    `;
+                    break;
+                case 1:
+                    matrixHTML = `
+                        <table class="matrix">
+                            <tr><td>1</td><td>1</td><td>1</td><td>3</td></tr>
+                            <tr><td>0</td><td>-1</td><td>-3</td><td>-4</td></tr>
+                            <tr><td>0</td><td>-4</td><td>0</td><td>-4</td></tr>
+                        </table>
+                    `;
+                    break;
+                case 2:
+                    matrixHTML = `
+                        <table class="matrix">
+                            <tr><td>1</td><td>1</td><td>1</td><td>3</td></tr>
+                            <tr><td>0</td><td>1</td><td>3</td><td>4</td></tr>
+                            <tr><td>0</td><td>1</td><td>0</td><td>1</td></tr>
+                        </table>
+                    `;
+                    break;
+                case 3:
+                    matrixHTML = `
+                        <table class="matrix">
+                            <tr><td>1</td><td>1</td><td>1</td><td>3</td></tr>
+                            <tr><td>0</td><td>1</td><td>0</td><td>1</td></tr>
+                            <tr><td>0</td><td>0</td><td>3</td><td>3</td></tr>
+                        </table>
+                    `;
+                    break;
+                case 4:
+                    matrixHTML = `
+                        <table class="matrix">
+                            <tr><td>1</td><td>0</td><td>1</td><td>2</td></tr>
+                            <tr><td>0</td><td>1</td><td>0</td><td>1</td></tr>
+                            <tr><td>0</td><td>0</td><td>3</td><td>3</td></tr>
+                        </table>
+                    `;
+                    break;
+                case 5:
+                    matrixHTML = `
+                        <table class="matrix">
+                            <tr><td>1</td><td>0</td><td>0</td><td>1</td></tr>
+                            <tr><td>0</td><td>1</td><td>0</td><td>1</td></tr>
+                            <tr><td>0</td><td>0</td><td>1</td><td>1</td></tr>
+                        </table>
+                    `;
+                    break;
+            }
+            
+            document.getElementById('matrix').innerHTML = matrixHTML;
+        }
+        
+        // 更新步骤描述
+        function updateStepDescription(step) {
+            const descriptions = [
+                "初始方程组：三个平面相交于点(1,1,1)",
+                "应用变换: (-2)×①→② 和 (-1)×①→③",
+                "应用变换: (-1)×② 和 (-1/4)×③",
+                "应用变换: ②↔③（交换方程位置）",
+                "应用变换: (-1)×②→① 和 (-1)×②→③",
+                "最终解：x=1, y=1, z=1"
+            ];
+            
+            document.getElementById('step-description').textContent = descriptions[step];
+        }
+        
+        // 设置事件监听器
+        function setupEventListeners() {
+            const slider = document.getElementById('step-slider');
+            const stepValue = document.getElementById('step-value');
+            const prevBtn = document.getElementById('prev-btn');
+            const nextBtn = document.getElementById('next-btn');
+            const canvas = renderer.domElement;
+            
+            // 滑块事件
+            slider.addEventListener('input', function() {
+                currentStep = parseInt(this.value);
+                stepValue.textContent = currentStep;
+                updatePlanes(currentStep);
+                updateMatrix(currentStep);
+                updateStepDescription(currentStep);
+                
+                // 更新按钮状态
+                prevBtn.disabled = currentStep === 0;
+                nextBtn.disabled = currentStep === 5;
+            });
+            
+            // 上一步按钮
+            prevBtn.addEventListener('click', function() {
+                if (currentStep > 0) {
+                    currentStep--;
+                    slider.value = currentStep;
+                    stepValue.textContent = currentStep;
+                    updatePlanes(currentStep);
+                    updateMatrix(currentStep);
+                    updateStepDescription(currentStep);
+                    
+                    // 更新按钮状态
+                    prevBtn.disabled = currentStep === 0;
+                    nextBtn.disabled = currentStep === 5;
+                }
+            });
+            
+            // 下一步按钮
+            nextBtn.addEventListener('click', function() {
+                if (currentStep < 5) {
+                    currentStep++;
+                    slider.value = currentStep;
+                    stepValue.textContent = currentStep;
+                    updatePlanes(currentStep);
+                    updateMatrix(currentStep);
+                    updateStepDescription(currentStep);
+                    
+                    // 更新按钮状态
+                    prevBtn.disabled = currentStep === 0;
+                    nextBtn.disabled = currentStep === 5;
+                }
+            });
+            
+            // 旋转控制
+            canvas.addEventListener('mousedown', function(e) {
+                isDragging = true;
+                previousMousePosition = {
+                    x: e.clientX,
+                    y: e.clientY
+                };
+            });
+            
+            canvas.addEventListener('mousemove', function(e) {
+                if (isDragging) {
+                    const deltaMove = {
+                        x: e.clientX - previousMousePosition.x,
+                        y: e.clientY - previousMousePosition.y
+                    };
+                    
+                    // 旋转场景
+                    targetRotation.y += deltaMove.x * 0.01;
+                    targetRotation.x += deltaMove.y * 0.01;
+                    
+                    previousMousePosition = {
+                        x: e.clientX,
+                        y: e.clientY
+                    };
+                }
+            });
+            
+            canvas.addEventListener('mouseup', function() {
+                isDragging = false;
+            });
+            
+            canvas.addEventListener('mouseleave', function() {
+                isDragging = false;
+            });
+            
+            // 缩放控制
+            canvas.addEventListener('wheel', function(e) {
+                e.preventDefault();
+                targetZoom += e.deltaY * 0.01;
+                // 限制缩放范围
+                targetZoom = Math.max(5, Math.min(15, targetZoom));
+            });
+            
+            // 重置视图
+            canvas.addEventListener('dblclick', function() {
+                targetRotation.x = 0.5;
+                targetRotation.y = 0.5;
+                targetZoom = 8;
+            });
+            
+            // 窗口大小调整
+            window.addEventListener('resize', function() {
+                const container = document.querySelector('.visualization');
+                camera.aspect = container.clientWidth / container.clientHeight;
+                camera.updateProjectionMatrix();
+                renderer.setSize(container.clientWidth, container.clientHeight);
+            });
+        }
+        
+        // 动画循环
+        function animate() {
+            requestAnimationFrame(animate);
+            
+            // 平滑旋转
+            scene.rotation.x += (targetRotation.x - scene.rotation.x) * 0.05;
+            scene.rotation.y += (targetRotation.y - scene.rotation.y) * 0.05;
+            
+            // 平滑缩放
+            currentZoom += (targetZoom - currentZoom) * 0.1;
+            camera.position.z = currentZoom;
+            
+            renderer.render(scene, camera);
+        }
+        
+        // 初始化应用
+        init();
+        updateMatrix(currentStep);
+        updateStepDescription(currentStep);
+    </script>
+</body>
+</html>
