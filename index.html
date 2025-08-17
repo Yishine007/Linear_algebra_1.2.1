@@ -244,9 +244,9 @@
             border-radius: 4px;
         }
         
-        .plane1-color { background: #ff6b6b; }
-        .plane2-color { background: #4ecdc4; }
-        .plane3-color { background: #ffd166; }
+        .plane1-color { background: #9932CC; } /* 紫色 */
+        .plane2-color { background: #4169E1; } /* 蓝色 */
+        .plane3-color { background: #FFC0CB; } /* 粉色 */
         
         .equation {
             font-family: monospace;
@@ -424,10 +424,10 @@
         let currentZoom = 8;
         let axisObjects = { x: null, y: null, z: null };
         
-        // 平面颜色定义
-        const plane1Color = 0xff6b6b;
-        const plane2Color = 0x4ecdc4;
-        const plane3Color = 0xffd166; 
+        // 平面颜色定义 - 修改为紫色、蓝色和粉色
+        const plane1Color = 0x9932CC; // 紫色
+        const plane2Color = 0x4169E1; // 蓝色
+        const plane3Color = 0xFFC0CB; // 粉色
         const pointColor = 0x000000;
         
         // 各步骤的平面方程参数
@@ -643,8 +643,8 @@
             const axisLengthLabel = 5.8;
             
             axisObjects.x = create3DAxisLabel('X', new THREE.Vector3(axisLengthLabel, 0, 0), '#000000');
-            axisObjects.y = create3DAxisLabel('Y', new THREE.Vector3(0, axisLengthLabel, 0), '#000000');
-            axisObjects.z = create3DAxisLabel('Z', new THREE.Vector3(0, 0, axisLengthLabel), '#000000');
+            axisObjects.y = create3DAxisLabel('Z', new THREE.Vector3(0, axisLengthLabel, 0), '#000000');
+            axisObjects.z = create3DAxisLabel('Y', new THREE.Vector3(0, 0, axisLengthLabel), '#000000');
             
             sceneGroup.add(axisObjects.x);
             sceneGroup.add(axisObjects.y);
